@@ -1,0 +1,6 @@
+cssselect==1.2.0
+et_xmlfile==2.0.0
+lxml==5.3.1
+openpyxl==3.1.5
+paho-mqtt==2.1.0
+pyquery==2.0.1
