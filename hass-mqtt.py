@@ -22,6 +22,12 @@ for register in registers:
     service = register['service']
     topic = register['topic']
 
+    if service is None or topic is None:
+        continue
+
+    service = service.lower()
+    topic = topic.lower()
+
     if not service in registerMap:
         registerMap[service] = {}
 
@@ -55,6 +61,7 @@ def on_message(client, userdata, msg):
         client.publish('victron/R/%s/keepalive' % serial, '')
         return
 
+
     m = re.search(r'N/([^/]+)/([^/]+)/(\d+)(/.*)$', msg.topic)
     if m is not None:
         serial = m.group(1)
@@ -69,19 +76,20 @@ def on_message(client, userdata, msg):
         topic = dbusTopic[1:].replace('/', '_')
 
         if not service in registerMap:
-            #  print('Could not find service %s in registerset' % service)
+            #  print('Could not find service %s in registerset for %s' % (service, dbusTopic))
             return
 
         serviceRegisters = registerMap[service]
-        if not dbusTopic in serviceRegisters: dbusTopic = re.sub(r'/Power$', '/P', dbusTopic)
-        if not dbusTopic in serviceRegisters: dbusTopic = re.sub(r'/Current$', '/I', dbusTopic)
-        if not dbusTopic in serviceRegisters: dbusTopic = re.sub(r'/Voltage$', '/V', dbusTopic)
-        if not dbusTopic in serviceRegisters: dbusTopic = re.sub(r'/Frequency$', '/F', dbusTopic)
+        searchTopic = dbusTopic.lower()
+        if not searchTopic in serviceRegisters: searchTopic = re.sub(r'/power$', '/p', searchTopic)
+        if not searchTopic in serviceRegisters: searchTopic = re.sub(r'/current$', '/i', searchTopic)
+        if not searchTopic in serviceRegisters: searchTopic = re.sub(r'/voltage$', '/v', searchTopic)
+        if not searchTopic in serviceRegisters: searchTopic = re.sub(r'/frequency$', '/f', searchTopic)
 
-        if not dbusTopic in serviceRegisters:
-            #  print('Could not find %s in registerset %s' % (dbusTopic, service))
+        if not searchTopic in serviceRegisters:
+            #  print('Could not find topic %s in registerset for %s' % (dbusTopic, service))
             return
-        register = serviceRegisters[dbusTopic]
+        register = serviceRegisters[searchTopic]
 
         options = None
         device_class = None
@@ -122,17 +130,45 @@ def on_message(client, userdata, msg):
         if state_class is not None: classInfo['state_class'] = state_class
         if options is not None: classInfo['options'] = list(filter(None, options))
 
+        device_type = 'sensor'
+        if register['writable']:
+            if re.match(r'int(32|16)', register['type']): device_type = 'number'
+            if re.match(r'string', register['type']): device_type = 'text'
+            if device_type == 'number' and options is not None: device_type = 'select'
+
+            if device_type == 'number':
+                classInfo['mode'] = 'box'
+                classInfo['max'] = 999999
+                classInfo['min'] = -999999
+
+                if register.get('range', None) is not None:
+                    classInfo['max'] = max(register['range'])
+                    classInfo['min'] = min(register['range'])
+
+                if 'max' in payload: classInfo['max'] = payload['max']
+                if 'min' in payload: classInfo['min'] = payload['min']
+
+            if device_type != 'sensor':
+                classInfo['command_topic'] = re.sub(r'victron/N/', 'victron/W/', msg.topic)
+                classInfo['command_template'] = '{{ { "value": value } | tojson }}'
+
+        if isinstance(value, float):
+            classInfo['suggested_display_precision'] = max([ len(str(register['scalefactor'])) - 1, 0 ]);
+
+        name = re.sub(r'System;\s*', '', register['name'])
+        name = name[0].upper() + name[1:]
+
         client.publish(
-            'homeassistant/sensor/%s/%s/config' % (device_id, topic),
+            'homeassistant/%s/%s/%s/config' % (device_type, device_id, topic),
             json.dumps({
                 **classInfo,
-                'name': register['name'],
+                'name': name,
                 'unique_id': '%s:%s' % (device_id, topic),
                 'state_topic': msg.topic,
                 'value_template': '{{ ' + value_template + ' }}',
                 'unit_of_measurement': unit,
                 'device': {
-                    'name': 'Victron %s %s' % (serial, service),
+                    'name': 'Victron %s %s #%s' % (serial, service, instance),
                     'manufacturer': 'Victron Energy',
                     'serial_number': serial,
                     'identifiers': [ device_id ]
