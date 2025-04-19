@@ -1,14 +1,15 @@
 import json
 
-from topic_components import TopicComponents
-from hass_gxdevice_entity import HomeAssistantGXDeviceEntity
+from .topic_components import TopicComponents
+from .hass_gxdevice_entity import HomeAssistantGXDeviceEntity
 
 class HomeAssistantGXDevice:
 
-    def __init__(self, mqtt_client, serial, registers):
+    def __init__(self, mqtt_client, serial, registers, sensor_documentation):
         self.mqtt = mqtt_client
         self.serial = serial
         self.registers = registers
+        self.sensor_documentation = sensor_documentation
 
     def subscribe(self):
         self.mqtt.subscribe("victron/N/%s/+/+/ProductId" % self.serial)
@@ -29,7 +30,7 @@ class HomeAssistantGXDevice:
 
         print(topic_components.dbus_topic)
 
-        entity = HomeAssistantGXDeviceEntity(msg, topic)
+        entity = HomeAssistantGXDeviceEntity(self, msg, topic)
 
         self.mqtt.publish(
             'homeassistant/%s/%s/%s/config' % (entity.device_type, entity.device_id, entity.topic_id),

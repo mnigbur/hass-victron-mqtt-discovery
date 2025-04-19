@@ -1,17 +1,23 @@
-from functools import cached_property
-from topic_components import TopicComponents
-
 import re
 import json
+
+from functools import cached_property
+
+from .topic_components import TopicComponents
 
 RE_OPTIONS = r'((\d+)=[^;]+;\s*)*((\d+)=[^;]+)'
 
 class HomeAssistantGXDeviceEntity:
 
-    def __init__(self, msg, topic):
+    def __init__(self, gx_device, msg, topic):
         self.msg = msg
         self.topic = topic
         self.entity_config = {}
+        self.gx_device = gx_device
+
+    @property
+    def sensor_documentation(self):
+        return self.gx_device.sensor_documentation
 
     @cached_property
     def is_enum(self):
@@ -80,8 +86,9 @@ class HomeAssistantGXDeviceEntity:
         if self.is_enum:
             return 'enum';
 
-        #  if state_classes.get(self.unit, None) is not None:
-            #  return state_classes[self.unit]
+        device_class = self.sensor_documentation.device_class_from_unit(self.unit)
+        if device_class is not None:
+            return device_class
 
         return None
 

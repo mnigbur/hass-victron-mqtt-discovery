@@ -7,14 +7,11 @@
 # Distributed under terms of the MIT license.
 import re
 import json
-import hashlib
 
 from openpyxl import Workbook
 from openpyxl.reader.excel import load_workbook
 
-def generate_file_hash(path):
-    with open(path, 'rb', buffering=0) as f:
-        return hashlib.file_digest(f, 'sha256').hexdigest()
+from .cache import Cache
 
 def topic_from_row(row):
     if row[6] == '':
@@ -37,20 +34,13 @@ def topic_from_row(row):
     }
 
 
-class ModbusRegisters:
+class ModbusRegisters(Cache):
 
     def __init__(self, source=None):
         self.services = {}
 
         if source is not None:
             self.from_xlsx(source)
-
-    def has_cache(self, cache_id):
-        return False
-
-    def load_cache(self, cache_id):
-        with open('.cache/' + cache_id, 'r') as f:
-            self.services = json.load(f)
 
     def lookup_mqtt_topic(self, topic):
         m = re.search(r'N/([^/]+)/([^/]+)/(\d+)(/.*)$', topic)
@@ -75,15 +65,12 @@ class ModbusRegisters:
 
         return topicMap[searchTopic]
 
-    def update_cache(self, cache_id):
-        with open('.cache/' + cache_id, 'w') as f:
-            json.dump(self.services, f)
-
     def from_xlsx(self, file):
-        cache_id = generate_file_hash(file)
+        cache_id = self.file_cache_id(file)
 
         if self.has_cache(cache_id):
-            return self.load_cache(cache_id)
+            self.services = self.load_cache(cache_id)
+            return
 
         wb = load_workbook(file)
         ws = wb['Field list']
@@ -109,3 +96,6 @@ class ModbusRegisters:
 
             if not topic in self.services[service]:
                 self.services[service][topic] = row
+
+        wb.close()
+        self.update_cache(cache_id, self.services)
