@@ -5,7 +5,9 @@
 #
 # Distributed under terms of the MIT license.
 
-import paho.mqtt.client as mqtt
+import traceback
+import aiomqtt
+import asyncio
 import json
 import re
 
@@ -13,6 +15,9 @@ from .modbus_registers import ModbusRegisters
 from .hass_gxdevice import HomeAssistantGXDevice
 from .topic_components import TopicComponents
 from .sensor_documentation import SensorDocumentation
+
+RE_SERIAL = r'N/[^/]+/system/\d+/Serial$'
+RE_PUBLISH_COMPLETE = r'N/([^/]+)/full_publish_completed$'
 
 class HassVictronMqttDiscovery:
 
@@ -25,6 +30,7 @@ class HassVictronMqttDiscovery:
         sensor_documentation=None,
         sensor_documentation_path=None):
 
+        self.task = None
         self.mqtt = None
         self.mqtt_host = mqtt_host
         self.mqtt_port = mqtt_port
@@ -35,22 +41,31 @@ class HassVictronMqttDiscovery:
         self.registers = self.init_registers(registers, registers_path)
         self.sensor_documentation = self.init_sensor_documentation(sensor_documentation, sensor_documentation_path)
 
-    def start(self):
-        self.setup_mqtt()
+    async def loop(self):
+        if self.mqtt is not None:
+            raise 'Discovery already started'
 
-        self.mqtt.connect(self.mqtt_host, self.mqtt_port, 60)
-        self.mqtt.loop_forever()
+        self.mqtt = client = aiomqtt.Client(self.mqtt_host, self.mqtt_port)
 
-    def setup_mqtt(self):
-        def on_connect(client, userdata, flags, reason_code, properties):
-            self.on_connect()
+        while self.mqtt is not None:
+            try:
+                async with self.mqtt:
+                    await client.subscribe(self.mqtt_prefix + '#')
+                    async for message in client.messages:
+                        await self.on_message(message)
+            except aiomqtt.MqttError:
+                await asyncio.sleep(5)
 
-        def on_message(client, userdata, msg):
-            self.on_message(msg)
+        self.mqtt = None
 
-        self.mqtt = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-        self.mqtt.on_connect = on_connect
-        self.mqtt.on_message = on_message
+    async def start(self):
+        loop = asyncio.get_running_loop()
+        self.task = loop.create_task(self.loop())
+        await self.task
+
+    def stop(self):
+        self.mqtt = None
+        self.task.cancel()
 
     def init_registers(self, registers, registers_path):
         if registers is not None:
@@ -70,23 +85,34 @@ class HassVictronMqttDiscovery:
 
         raise 'Must supply either sensor_documentation or sensor_documentation_path'
 
-    def on_connect(self):
-        self.mqtt.subscribe(self.mqtt_prefix + '#')
-
-    def on_device_discovery(self, msg):
-        payload = json.loads(msg.payload)
+    async def on_device_discovery(self, topic, payload):
         serial = payload['value']
 
         if serial not in self.devices:
-            print('Found device with serial: %s' % serial)
-            self.devices[serial] = HomeAssistantGXDevice(self.mqtt, serial, self.registers, self.sensor_documentation)
-            self.devices[serial].subscribe()
+            prefix = re.sub(RE_SERIAL, '', topic)
+            print('Found device with serial "%s" at prefix "%s"' % (serial, prefix))
+            self.devices[serial] = HomeAssistantGXDevice(self.mqtt, prefix, serial, self.registers, self.sensor_documentation)
+            await self.devices[serial].subscribe()
 
-    def on_message(self, msg):
-        if re.search(r'system\/\d+\/Serial$', msg.topic) is not None:
-            self.on_device_discovery(msg)
+    async def on_message(self, msg):
+        try:
+            topic = msg.topic.value
+            payload = json.loads(msg.payload)
 
-        c = TopicComponents.from_topic(msg.topic)
+            if re.search(RE_SERIAL, topic) is not None:
+                await self.on_device_discovery(topic, payload)
 
-        if c.serial in self.devices:
-            self.devices[c.serial].on_mqtt_message(msg)
+            publish_complete = re.search(RE_PUBLISH_COMPLETE, topic)
+            if publish_complete is not None and publish_complete.group(1) in self.devices:
+                serial = publish_complete.group(1)
+                await self.devices[serial].on_publish_completed(topic, payload)
+
+            c = TopicComponents.from_topic(topic)
+
+            if c.serial in self.devices:
+                await self.devices[c.serial].on_mqtt_message(topic, payload)
+        except json.decoder.JSONDecodeError:
+            # Ignore this error, the topic is not a valid victron topic
+            pass
+        except Exception as e:
+            traceback.print_exception(e)

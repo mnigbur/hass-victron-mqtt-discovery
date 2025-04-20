@@ -9,9 +9,10 @@ RE_OPTIONS = r'((\d+)=[^;]+;\s*)*((\d+)=[^;]+)'
 
 class HomeAssistantGXDeviceEntity:
 
-    def __init__(self, gx_device, msg, topic):
-        self.msg = msg
+    def __init__(self, gx_device, register, topic, payload={}):
         self.topic = topic
+        self.payload = payload
+        self.register = register
         self.entity_config = {}
         self.gx_device = gx_device
 
@@ -21,26 +22,22 @@ class HomeAssistantGXDeviceEntity:
 
     @cached_property
     def is_enum(self):
-        if self.topic['unit'] is None:
+        if self.register['unit'] is None:
             return False
 
-        return re.match(RE_OPTIONS, self.topic['unit'])
+        return re.match(RE_OPTIONS, self.register['unit'])
 
     @cached_property
     def is_writable(self):
-        return self.topic['writable']
+        return self.register['writable']
 
     @cached_property
-    def msg_payload(self):
-        return json.loads(self.msg.payload)
-
-    @cached_property
-    def msg_value(self):
-        return self.msg_payload['value']
+    def value(self):
+        return self.payload['value']
 
     @cached_property
     def topic_components(self):
-        return TopicComponents.from_topic(self.msg.topic)
+        return TopicComponents.from_topic(self.topic)
 
     @cached_property
     def device_id(self):
@@ -54,7 +51,7 @@ class HomeAssistantGXDeviceEntity:
 
     @cached_property
     def unit(self):
-        unit = self.topic['unit']
+        unit = self.register['unit']
 
         if unit is None or unit == 'count' or self.is_enum:
             return None
@@ -73,7 +70,7 @@ class HomeAssistantGXDeviceEntity:
         if not self.is_enum:
             return None
 
-        matches = re.findall(r'(\d+)=([^;]+)', self.topic['unit'])
+        matches = re.findall(r'(\d+)=([^;]+)', self.register['unit'])
         maxIndex = max([ int(v[0]) for v in matches ]) + 1
         options = [None] * maxIndex
         for [ key, value ] in matches:
@@ -114,7 +111,7 @@ class HomeAssistantGXDeviceEntity:
         if self.is_enum:
             return 'select'
 
-        value_type = self.topic['type']
+        value_type = self.register['type']
 
         if re.match(r'int(32|16)', value_type):
             return 'number'
@@ -137,8 +134,8 @@ class HomeAssistantGXDeviceEntity:
         if self.options is not None:
             info['options'] = list(filter(None, self.options))
 
-        if isinstance(self.msg_value, float):
-            scalefactor = self.topic['scalefactor']
+        if isinstance(self.value, float):
+            scalefactor = self.register['scalefactor']
             info['suggested_display_precision'] = max([ len(str(scalefactor)) -1, 0 ])
 
         if not self.is_writable:
@@ -149,16 +146,16 @@ class HomeAssistantGXDeviceEntity:
             info['max'] = 2^31 - 1;
             info['min'] = -2^31
 
-            value_range = self.topic.get('range', None)
+            value_range = self.register.get('range', None)
             if value_range is not None:
                 info['max'] = max(value_range)
                 info['min'] = min(value_range)
 
-            if 'max' in self.msg_payload: info['max'] = self.msg_payload['max']
-            if 'min' in self.msg_payload: info['min'] = self.msg_payload['min']
+            if 'max' in self.payload: info['max'] = self.payload['max']
+            if 'min' in self.payload: info['min'] = self.payload['min']
 
         if self.device_type != 'sensor':
-            info['command_topic'] = re.sub(r'(^|/)N/', r'\1W/', self.msg.topic)
+            info['command_topic'] = re.sub(r'(^|/)N/', r'\1W/', self.topic)
             info['command_template'] = '{{ { "value": value } | tojson }}'
 
         return info
@@ -176,7 +173,7 @@ class HomeAssistantGXDeviceEntity:
 
     @cached_property
     def name(self):
-        name = self.topic['name']
+        name = self.register['name']
         name = re.sub(r'System;\s*', '', name)
         return name[0].upper() + name[1:]
 
@@ -195,9 +192,9 @@ class HomeAssistantGXDeviceEntity:
             **self.entity_info,
             'name': self.name,
             'unique_id': '%s:%s' % (self.device_id, self.topic_id),
-            'state_topic': self.msg.topic,
+            'state_topic': self.topic,
             'value_template': self.value_template,
             'unit_of_measurement': self.unit,
             'device': self.device_description,
-            'enabled_by_default': self.msg_value is not None,
+            'enabled_by_default': self.value is not None,
         }
