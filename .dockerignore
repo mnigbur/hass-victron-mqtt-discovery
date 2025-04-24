@@ -1,0 +1,7 @@
+.cache
+.venv
+.git
+.gitignore
+.dockerignore
+Makefile
+docker/Dockerfile
