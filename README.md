@@ -13,7 +13,7 @@ Only the `MQTT_HOST` environment variable is required, it should be set to the M
 If you do not run a separate MQTT broker `MQTT_HOST` should be set to the IP of your Victron GX.
 
 ```sh
-docker run --name hass-victron-mqtt-discovery -ti --restart=always -e MQTT_HOST=192.168.1.10
+docker run --name hass-victron-mqtt-discovery -ti --restart=always -e MQTT_HOST=192.168.1.10 ghcr.io/evenssolutions/hass-victron-mqtt-discovery:main
 ```
 
 | Variable | Default | Description | Required |
