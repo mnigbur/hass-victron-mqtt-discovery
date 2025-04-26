@@ -1,0 +1,3 @@
+name: "Victron GX MQTT Discovery"
+url: https://github.com/EvensSolutions/hass-victron-mqtt-discovery
+maintainer: Jorgen Evens <jorgen@evens.eu>

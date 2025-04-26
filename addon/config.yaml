@@ -1,0 +1,23 @@
+name: "Victron GX MQTT Discovery"
+description: "Home Assistant auto-discovery for Victron equipment"
+url: "https://github.com/evenssolutions/hass-victron-mqtt-discovery"
+version: "0.1.1"
+slug: "hass-victron-mqtt-discovery"
+init: false
+arch:
+  - aarch64
+  - amd64
+startup: application
+hassio_api: true
+services:
+  - mqtt:want
+options:
+  mqtt_host: ""
+  mqtt_port: 1883
+  asset_modbus_registers_url: "https://www.victronenergy.com/upload/documents/CCGX-Modbus-TCP-register-list-3.50.xlsx"
+  asset_sensor_documentation_url: "https://developers.home-assistant.io/docs/core/entity/sensor/"
+schema:
+  mqtt_host: str
+  mqtt_port: int
+  asset_modbus_registers_url: str
+  asset_sensor_documentation_url: str
