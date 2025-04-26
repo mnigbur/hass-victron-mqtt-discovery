@@ -21,6 +21,24 @@ For this integration to work as expect you will need a few things:
 
 ## Usage
 
+This project can be installed either as a Home Assistant Addon or as a Docker image.
+
+### Home Assistant Addon
+
+To install the addon you'll have to add this repository as a repository to your addons, and install the `Victron GX MQTT Discovery` integration.
+
+- Open the [add-on store](https://my.home-assistant.io/redirect/supervisor_store/) on your instance.
+- On the top right overflow menu, click on `Repositories`
+- Add `https://github.com/EvensSolutions/hass-victron-mqtt-discovery` as a repository
+- Click `Close`
+- On the top right overflow menu, click on `Check for updates`
+- Scroll to and click on `Victron GX MQTT Discovery`
+- Click `Install`
+- (optional) Configure your MQTT host in `Configuration`, if you use the MQTT add-on this will be auto-discovered.
+- Click `Start`
+
+### Docker
+
 This project comes packaged as a docker container. Running this container will watch for GX devices publishing on the MQTT broker and automatically generate entities for the discovered GX entities.
 
 Options can be provided as environment variables.
