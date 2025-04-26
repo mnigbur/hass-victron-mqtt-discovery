@@ -3,6 +3,22 @@
 [Victron GX MQTT](https://github.com/victronenergy/dbus-flashmq) integration that maps MQTT topics to [modbus registers](https://www.victronenergy.com/support-and-downloads/technical-information) and
 uses this information to add [Home Assistant MQTT discovery](https://www.home-assistant.io/integrations/mqtt/#mqtt-discovery).
 
+The following functionality is implemented:
+
+- Mapping MQTT topics to official modbus registers documentation.
+- Expose MQTT topics as Home Assistant entities using MQTT discovery.
+- Expose writable topics with correct Home Assistant entity type.
+- Implement [Victron MQTT keep-alive](https://github.com/victronenergy/dbus-flashmq?tab=readme-ov-file#keep-alive) algorithm.
+
+## Prerequisites
+
+For this integration to work as expect you will need a few things:
+
+- You to have the [MQTT integration](https://www.home-assistant.io/integrations/mqtt/) installed and connect to your MQTT server / Victron GX Device.
+- The MQTT feature is enabled in your Victron GX device. The setting is under `Settings > Services > MQTT Access`.
+- This integration is packaged as a [Docker](https://docs.docker.com/engine/install/) container, you will need somewhere to run it.
+
+
 ## Usage
 
 This project comes packaged as a docker container. Running this container will watch for GX devices publishing on the MQTT broker and automatically generate entities for the discovered GX entities.
@@ -13,7 +29,11 @@ Only the `MQTT_HOST` environment variable is required, it should be set to the M
 If you do not run a separate MQTT broker `MQTT_HOST` should be set to the IP of your Victron GX.
 
 ```sh
-docker run --name hass-victron-mqtt-discovery -ti --restart=always -e MQTT_HOST=192.168.1.10 ghcr.io/evenssolutions/hass-victron-mqtt-discovery:main
+docker run -ti \
+    --restart=always \
+    --name hass-victron-mqtt-discovery \
+    -e MQTT_HOST=192.168.1.10 ghcr.io/evenssolutions/ \
+    hass-victron-mqtt-discovery:main
 ```
 
 | Variable | Default | Description | Required |
