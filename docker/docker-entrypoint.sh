@@ -18,7 +18,7 @@ from hass_victron_mqtt_discovery import HassVictronMqttDiscovery
 async def main():
     hass_discovery = HassVictronMqttDiscovery(
         mqtt_host = os.environ['MQTT_HOST'],
-        mqtt_port = os.environ.get('MQTT_PORT', 1883),
+        mqtt_port = int(os.environ.get('MQTT_PORT', 1883)),
         mqtt_prefix = os.environ.get('MQTT_PREFIX', ''),
         registers_path = './assets/modbus-registers.xlsx',
         sensor_documentation_path = './assets/sensor-documentation.html',
