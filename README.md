@@ -50,8 +50,8 @@ If you do not run a separate MQTT broker `MQTT_HOST` should be set to the IP of 
 docker run -ti \
     --restart=always \
     --name hass-victron-mqtt-discovery \
-    -e MQTT_HOST=192.168.1.10 ghcr.io/evenssolutions/ \
-    hass-victron-mqtt-discovery:main
+    -e MQTT_HOST=192.168.1.10 \
+    ghcr.io/evenssolutions/hass-victron-mqtt-discovery:main
 ```
 
 | Variable | Default | Description | Required |
