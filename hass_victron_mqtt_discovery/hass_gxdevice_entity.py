@@ -92,14 +92,12 @@ class HomeAssistantGXDeviceEntity:
     @cached_property
     def state_class(self):
         unit = self.unit
+        sensor_state_class = self.sensor_documentation.state_class_from_unit(unit)
 
-        if unit in ['A', 'V', 'W']:
-            return 'measurement';
+        if sensor_state_class is not None:
+            return sensor_state_class
 
-        if unit in ['kWh', 'Wh']:
-            return 'total';
-
-        return None;
+        return None
 
     @cached_property
     def device_type(self):
