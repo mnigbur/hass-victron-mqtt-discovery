@@ -2,9 +2,12 @@ import re
 import json
 import uuid
 import asyncio
+from datetime import datetime
 
 from .topic_components import TopicComponents
 from .hass_gxdevice_entity import HomeAssistantGXDeviceEntity
+
+RESYNC_TTL = 3600
 
 class HomeAssistantGXDevice:
 
@@ -39,9 +42,17 @@ class HomeAssistantGXDevice:
             "keepalive-options" : [ "suppress-republish" ]
         })
 
+        last_full_sync = datetime.now()
+
         while True:
             await asyncio.sleep(30)
-            await self.mqtt.publish(self.keepalive_address, keepalive)
+
+            seconds_since_full_sync = (datetime.now() - last_full_sync).seconds
+            if seconds_since_full_sync >= RESYNC_TTL:
+                last_full_sync = datetime.now()
+                await self.resync()
+            else:
+                await self.mqtt.publish(self.keepalive_address, keepalive)
 
     async def subscribe(self):
         asyncio.get_running_loop().create_task(self.keepalive())
