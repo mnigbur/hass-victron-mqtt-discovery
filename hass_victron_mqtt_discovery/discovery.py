@@ -25,6 +25,8 @@ class HassVictronMqttDiscovery:
         mqtt_host='127.0.0.1',
         mqtt_port=1883,
         mqtt_prefix="",
+        mqtt_username=None,
+        mqtt_password=None,
         registers=None,
         registers_path=None,
         sensor_documentation=None,
@@ -34,6 +36,8 @@ class HassVictronMqttDiscovery:
         self.mqtt = None
         self.mqtt_host = mqtt_host
         self.mqtt_port = mqtt_port
+        self.mqtt_username = mqtt_username
+        self.mqtt_password = mqtt_password
         self.mqtt_prefix = mqtt_prefix
 
         self.devices = {}
@@ -45,7 +49,12 @@ class HassVictronMqttDiscovery:
         if self.mqtt is not None:
             raise 'Discovery already started'
 
-        self.mqtt = client = aiomqtt.Client(self.mqtt_host, self.mqtt_port)
+        self.mqtt = client = aiomqtt.Client(
+            hostname=self.mqtt_host,
+            port=self.mqtt_port,
+            username=self.mqtt_username,
+            password=self.mqtt_password
+        )
 
         while self.mqtt is not None:
             try:

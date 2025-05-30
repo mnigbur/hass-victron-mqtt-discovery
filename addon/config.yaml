@@ -14,10 +14,14 @@ services:
 options:
   mqtt_host: ""
   mqtt_port: 1883
+  mqtt_username: ""
+  mqtt_password: ""
   asset_modbus_registers_url: "https://www.victronenergy.com/upload/documents/CCGX-Modbus-TCP-register-list-3.50.xlsx"
   asset_sensor_documentation_url: "https://developers.home-assistant.io/docs/core/entity/sensor/"
 schema:
-  mqtt_host: str
+  mqtt_host: str?
   mqtt_port: int
+  mqtt_username: str?
+  mqtt_password: str?
   asset_modbus_registers_url: str
   asset_sensor_documentation_url: str
