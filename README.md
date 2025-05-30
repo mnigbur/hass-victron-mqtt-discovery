@@ -58,6 +58,8 @@ docker run -ti \
 | --- | --- | --- | --- |
 | `MQTT_HOST` | | The address of the MQTT server to subscribe and publish to | Yes |
 | `MQTT_PORT` | `1883` | The port on which the MQTT server runs | No |
+| `MQTT_USERNAME` |  | The username used to authenticate to the MQTT server | No |
+| `MQTT_PASSWORD` |  | The password used to authetnicate to the MQTT password | No |
 | `MQTT_PREFIX` | `""` | The prefix to subscribe to. If you Victron data is published using a prefix, specify it here | No |
 | `ASSET_MODBUS_REGISTERS_URL` | [link](https://www.victronenergy.com/upload/documents/CCGX-Modbus-TCP-register-list-3.50.xlsx) | The URL to the Victron provided list of modbus registers | No |
 | `ASSET_SENSOR_DOCUMENTATION_URL` | [link](https://developers.home-assistant.io/docs/core/entity/sensor/) | The URL to the Home Assistant Sensor Entity documentation | No |
