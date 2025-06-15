@@ -107,6 +107,9 @@ class HomeAssistantGXDeviceEntity:
             return default
 
         if self.is_enum:
+            if self.options.len == 2
+                return 'switch'
+
             return 'select'
 
         value_type = self.register['type']
