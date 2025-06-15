@@ -1,6 +1,6 @@
 ARG BUILD_VERSION
 ARG BUILD_FROM
-FROM github.com/mnigbur/hass-victron-mqtt-discovery:${BUILD_VERSION} AS source
+FROM ghcr.io/mnigbur/hass-victron-mqtt-discovery:${BUILD_VERSION} AS source
 
 FROM ${BUILD_FROM}
 
