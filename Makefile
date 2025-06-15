@@ -4,7 +4,7 @@
 #
 
 ROOT_DIR?=$(shell dirname $(firstword $(MAKEFILE_LIST)))
-IMAGE_NAME?="evens-solutions/victron-hass-mqtt-autodiscovery"
+IMAGE_NAME?="mnigbur/victron-hass-mqtt-autodiscovery"
 VERSION?=$(shell git tag | sort -r -V | head -n1 | sed 's/^v//')
 
 build: build-docker build-hassio-addon
